@@ -32,7 +32,7 @@ services:
       dockerfile: Dockerfile
     image: db_image:latest
     ports:
-    - 5432:5432
+    - ${PORT_DB}:5432
     environment:
       POSTGRES_DB: ${DATABASE_DB}
       POSTGRES_USER: ${USER_DB}
@@ -79,6 +79,8 @@ services:
     depends_on:
       - db
     container_name: db_repl
+    ports:
+      - ${DB_REPL_PORTS}:5432
     networks:
       db1_network:
         ipv4_address: ${REPL_DB_HOST}
