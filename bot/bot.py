@@ -64,7 +64,7 @@ def findPhoneNumbers (update: Update, context: CallbackContext):
 
     if not phoneNumberList: # Обрабатываем случай, когда номеров телефонов нет
         update.message.reply_text('Телефонные номера не найдены')
-        return # Завершаем выполнение функции
+        return ConversationHandler.END # Завершаем выполнение функции
     
     phones = ""
     for phone in phoneNumberList:
@@ -116,7 +116,7 @@ def findEmail (update: Update, context: CallbackContext):
 
     if not EmailList: 
         update.message.reply_text('Адреса электронных почт не найдены!')
-        return # Завершаем выполнение функции
+        return ConversationHandler.END # Завершаем выполнение функции
     
     emails = ""
     for email in EmailList:
