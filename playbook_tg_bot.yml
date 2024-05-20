@@ -1,21 +1,20 @@
 - name: dbMaster init
   hosts: host01
   gather_facts: false
+  become: yes
   tasks:
+
     - name: install packages
       apt:
         name:
           - postgresql
           - postgresql-contrib
+          - python3-pip
         state: latest
-
-    - name: install package2
-      pip:
-        name: psycopg2-binary
 
     - name: Create archive
       file:
-        path: "{{env.ARCHIVE}}"
+        path: "{{ hostvars[inventory_hostname]['ARCHIVE'] }}"
         state: directory
         owner: "postgres"
         mode: 0750
@@ -23,10 +22,10 @@
 
     - name: Setup postgresql.conf
       blockinfile:
-        path: "/etc/postgresql/{{env.PG_VERSION}}/main/postgresql.conf"
+        path: "/etc/postgresql/{{ hostvars[inventory_hostname]['PG_VERSION'] }}/main/postgresql.conf"
         block: |
           archive_mode = on
-          archive_command = 'cp %p {{env.ARCHIVE}}%f'
+          archive_command = 'cp %p {{ hostvars[inventory_hostname]['ARCHIVE'] }}%f'
           max_wal_senders = 10
           wal_level = replica
           wal_log_hints = on
@@ -36,37 +35,40 @@
 
     - name: Setup pg_hba.conf
       blockinfile:
-        path: "/etc/postgresql/{{env.PG_VERSION}}/main/pg_hba.conf"
+        path: "/etc/postgresql/{{ hostvars[inventory_hostname]['PG_VERSION'] }}/main/pg_hba.conf"
         block: |
-            host all all {{ hosts.dbbot.host}}/32 trust
-            host replication {{env.DB_REPL_USER}} {{hosts.db_repl.host}}/32 trust
+            host all all {{ hostvars[inventory_hostname]['ansible_host'] }}/32 trust
+            host replication {{ hostvars[inventory_hostname]['DB_REPL_USER'] }} {{ hostvars[inventory_hostname]['DB_REPL_HOST'] }}/32 md5
+
+    - name: install psycopg2
+      pip:
+        name: psycopg2-binary
+
 
     - name: create db_user
       become: true
       become_user: postgres
       postgresql_user:
-        name: "{{env.USER_DB}}"
-        password: "{{env.PASSWORD_DB}}"
+        name: "{{ hostvars[inventory_hostname]['USER_DB'] }}"
+        password: "{ hostvars[inventory_hostname]['PASSWORD_DB'] }}"
         role_attr_flags: LOGIN
 
-    - name: create repl_user
-      become: true
+    - name: create db
+      become: yes
       become_user: postgres
-      postgresql_user:
-        name: "{{env.DB_REPL_USER}}"
-        password: "{{env.DB_REPL_PASSWORD}}"
-        role_attr_flags: REPLICATION,LOGIN
+      shell: |
+        createdb db_bot --owner=postgres
 
     - name: configure psql db
       become: true
       become_user: postgres
       shell: |
-        echo "SELECT 'CREATE DATABASE {{env.DATABASE_DB}}' WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = '{{env.DATABASE_DB}}')\gexec" | psql
-        psql -d {{env.DATABASE_DB}} -c "CREATE TABLE IF NOT EXISTS phones (id SERIAL PRIMARY KEY, number VARCHAR(100) NOT NULL);"
-        psql -d {{env.DATABASE_DB}} -c "CREATE TABLE IF NOT EXISTS email (id SERIAL PRIMARY KEY, address VARCHAR(100) NOT NULL);"
-        psql -c "GRANT ALL PRIVILEGES ON DATABASE {{env.DB_DATABASE}} TO {{env.DB_USER}};"
-        psql -d {{env.DATABASE_DB}} -c "ALTER TABLE email OWNER TO {{env.USER_DB}};"
-        psql -d {{env.DATABASE_DB}} -c "ALTER TABLE phones OWNER TO {{env.USER_DB}};"
+        psql -c "CREATE USER {{ hostvars[inventory_hostname]['DB_REPL_USER'] }} WITH REPLICATION ENCRYPTED PASSWORD '{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}';"
+        psql -d {{ hostvars[inventory_hostname]['DATABASE_DB'] }} -c "CREATE TABLE phones (id SERIAL PRIMARY KEY, number VARCHAR(100) NOT NULL);"
+        psql -d {{ hostvars[inventory_hostname]['DATABASE_DB'] }} -c "CREATE TABLE email (id SERIAL PRIMARY KEY, address VARCHAR(100) NOT NULL);"
+        psql -c "GRANT ALL PRIVILEGES ON DATABASE {{ hostvars[inventory_hostname]['DATABASE_DB'] }} TO {{ hostvars[inventory_hostname]['USER_DB'] }};"
+        psql -d {{ hostvars[inventory_hostname]['DATABASE_DB'] }} -c "ALTER TABLE email OWNER TO {{ hostvars[inventory_hostname]['USER_DB'] }};"
+        psql -d {{ hostvars[inventory_hostname]['DATABASE_DB'] }} -c "ALTER TABLE phones OWNER TO {{ hostvars[inventory_hostname]['USER_DB'] }};"
 
     - name: restart postgresql
       service:
@@ -88,17 +90,17 @@
 
     - name: Setup postgresql.conf
       blockinfile:
-        path: "/etc/postgresql/{{env.PG_VERSION}}/main/postgresql.conf"
+        path: "/etc/postgresql/{{ hostvars[inventory_hostname]['PG_VERSION'] }}/main/postgresql.conf"
         block: |
           listen_addresses = '*'
 
     - name: rm db data
-      command: rm -rf /var/lib/postgresql/{{env.PG_VERSION}}/main/
+      command: rm -rf /var/lib/postgresql/{{ hostvars[inventory_hostname]['PG_VERSION'] }}/main/
 
     - name: pg_basebackup
-      command: pg_basebackup -R -h {{hosts.dbbot.host}} -U {{env.DB_REPL_USER}} -D /var/lib/postgresql/{{env.PG_VERSION}}/main/ -P
+      command: pg_basebackup -R -h {{ hostvars[inventory_hostname]['HOST_DB'] }} -U {{ hostvars[inventory_hostname]['DB_REPL_USER'] }} -D /var/lib/postgresql/{{ hostvars[inventory_hostname]['PG_VERSION'] }}/main/ -P
       environment:
-        PGPASSWORD: "{{env.DB_REPL_PASSWORD}}"
+        PGPASSWORD: "{{ hostvars[inventory_hostname]['DB_REPL_PASSWORD'] }}"
 
     - name: restart postgresql
       service:
@@ -126,19 +128,22 @@
 
     - name: pip install
       pip:
-        requirements: /tmp/bot/requirements.txt"
+        name:
+          - python-telegram-bot==13.7
+          - paramiko
+          - python-dotenv
 
     - name: run python bot
       shell: python3 /tmp/bot/bot.py
       environment:
-        TOKEN: "{{env.TOKEN}}"
-        HOST: "{{env.HOST}}"
-        PORT: "{{env.PORT}}"
-        USER: "{{env.USER}}"
-        PASSWORD: "{{env.PASSWORD}}"
-        HOST_DB: "{{hosts.dbbot.host}}"
-        PORT_DB: "{{env.PORT_DB}}"
-        USER_DB: "{{env.USER_DB}}"
-        PASSWORD_DB: "{{env.PASSWORD_DB}}"
-        DATABASE_DB: "{{env.DATABASE_DB}}"
-        PG_VERSION: "{{env.POSTGRES_VERSION}}"
+        TOKEN: "{{ hostvars[inventory_hostname]['TOKEN'] }}"
+        HOST: "{{ hostvars[inventory_hostname]['HOST'] }}"
+        PORT: "{{ hostvars[inventory_hostname]['PORT'] }}"
+        USER: "{{ hostvars[inventory_hostname]['USER'] }}"
+        PASSWORD: "{{ hostvars[inventory_hostname]['PASSWORD'] }}"
+        HOST_DB: "{{ hostvars[inventory_hostname]['HOST_DB'] }}"
+        PORT_DB: "{{ hostvars[inventory_hostname]['PORT_DB'] }}"
+        USER_DB: "{{ hostvars[inventory_hostname]['USER_DB'] }}"
+        PASSWORD_DB: "{{ hostvars[inventory_hostname]['PASSWORD_DB'] }}"
+        DATABASE_DB: "{{ hostvars[inventory_hostname]['DATABASE_DB'] }}"
+        PG_VERSION: "{{ hostvars[inventory_hostname]['PG_VERSION'] }}"
