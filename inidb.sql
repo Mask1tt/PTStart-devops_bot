@@ -1,0 +1,18 @@
+SELECT 'CREATE DATABASE  rnamedb'
+WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'rnamedb')\gexec
+DO $$
+BEGIN
+	IF NOT EXISTS (SELECT 1 FROM pg_user WHERE username = 'rrepluserdb') THEN
+		CREATE USER repluserdb WITH REPLICATION ENCRYPTED PASSWORD 'rreplpassworddb';
+	END IF;
+END $$
+ALTER USER repluserdb WITH PASSWORD 'replpassworddb';
+\c rnamedb
+CREATE TABLE IF NOT EXISTS Phones(
+	ID SERIAL PRIMARY KEY,
+	Phone VARCHAR(255)
+);
+CREATE TABLE IF NOT EXISTS Emails(
+	ID SERIAL PRIMARY KEY,
+	Email VARCHAR(255)
+);
