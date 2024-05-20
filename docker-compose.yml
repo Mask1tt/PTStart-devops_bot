@@ -79,8 +79,6 @@ services:
     depends_on:
       - db
     container_name: db_repl
-    ports:
-      - ${DB_REPL_PORTS}:5432
     networks:
       db1_network:
         ipv4_address: ${REPL_DB_HOST}
