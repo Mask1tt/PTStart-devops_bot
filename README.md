@@ -26,8 +26,8 @@
     POSTGRES_PASSWORD = пароль от базы данных
     DB_REPL_USER = repl_user # не изменять
     DB_REPL_PASSWORD = Qq12345 # не изменять
-    DB_REPL_HOST = желаемый адрес контейнера с репликацией базы данных
-    DB_REPL_PORT = порт для подключения к репликации базы данных
+    REPL_DB_HOST = желаемый адрес контейнера с репликацией базы данных
+    DB_REPL_PORTS = порт для подключения к репликации базы данных
     SUBNET = подсеть контейнеров( в формате: xxx.xxx.xxx.xxx/xx )
    ```
 3. В директории с файлом `docker-compose.yaml` введите команду ` docker compose up --build `
