@@ -31,5 +31,5 @@
          ansible_user: - пользователь для подключения ко 2-ой машине
          ansible_ssh_pass: - пароль для подключения ко 2-ой машине
    ```
-   3. В директории с playbook пропишите команду `ansible-playbook playbook_tg_bot.yml`
-   4. Сценарий для развертывания готов!
+3. В директории с playbook пропишите команду `ansible-playbook playbook_tg_bot.yml`
+4. Сценарий для развертывания готов!
