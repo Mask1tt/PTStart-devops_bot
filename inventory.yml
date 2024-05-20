@@ -1,28 +1,24 @@
-all:
-  vars:
-    DB_REPL_USER: repl_user
-    DB_REPL_PASSWORD: Qq1234
-    POSTGRES_VERSION: 15
-    HOST_DB: 192.168.1.26
-  hosts:
-    host01:
-      ansible_host: 192.168.1.26
-      ansible_user: root
-      ansible_ssh_pass: 12345
-      github_repo: https://github.com/Mask1tt/PTStart-devops_bot.git
-      dir: /root/PTStart/ansible
-      TOKEN: 6643300230:AAEZ5LtEh1Gh3ayWfuW320oMhBNKvMQpZX0
-      HOST: 192.168.1.33
-      PORT: 22
-      USER: root
-      PASSWORD: 1234
-      USER_DB: postgres
-      PASSWORD_DB: 1234
-      PORT_DB: 5432
-      DATABASE_DB: db_bot
-      DB_REPL_HOST: db_repl
-      DB_REPL_PORT: 5432
-    host02:
-      ansible_host: 192.168.1.33
-      ansible_user: root
-      ansible_ssh_pass: 12345
+hosts:
+  dbbot:
+    host: 192.168.1.26
+    user: root
+    password: 12345
+  db_repl:
+    host: 192.168.1.33
+    user: root
+    password: 12345
+
+env:
+  TOKEN: 6643300230:AAEZ5LtEh1Gh3ayWfuW320oMhBNKvMQpZX0
+  HOST: 192.168.1.33
+  PORT: 22
+  USER: root
+  PASSWORD: 1234
+  USER_DB: postgres
+  PASSWORD_DB: 1234
+  PORT_DB: 5432
+  DATABASE_DB: db_bot
+  DB_REPL_PORT: 5432
+  DB_REPL_USER: repl_user
+  PG_VERSION: 15
+  ARCHIVE: "/oracle/pg_data/archive/"
